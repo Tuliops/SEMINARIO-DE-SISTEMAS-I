@@ -12,4 +12,8 @@ router.post('/login', authController.login);
 //Ruta para el registro de nuevos usuarios (POST)
 router.post('/register', authController.register);
 
+// Ruta para obtener todas las obras de arte (GET)
+router.get('/gallery', authController.getGallery);
+
+
 module.exports = router;

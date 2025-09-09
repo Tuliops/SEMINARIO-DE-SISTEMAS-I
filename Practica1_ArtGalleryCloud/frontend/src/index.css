@@ -1,0 +1,29 @@
+/* Variables para el tema oscuro */
+:root {
+  --background-color: #1a1a1a; /* Negro muy oscuro */
+  --text-color: #e0e0e0;     /* Gris claro para el texto */
+  --primary-color: #61dafb;  /* Un azul brillante para acentos */
+  --input-bg-color: #333333; /* Fondo de inputs más oscuro */
+  --input-border-color: #555555; /* Borde de inputs */
+  --button-bg-color: #61dafb; /* Fondo del botón */
+  --button-text-color: #1a1a1a; /* Texto del botón oscuro */
+  --card-bg-color: #2a2a2a; /* Fondo para tarjetas o contenedores */
+}
+
+/* Estilos globales para el body */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+/* Estilos básicos para elementos de código */
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}

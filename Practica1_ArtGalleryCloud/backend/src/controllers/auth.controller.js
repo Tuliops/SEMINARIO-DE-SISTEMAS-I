@@ -1,4 +1,5 @@
 // backend/src/controllers/auth.controller.js
+const sessions = {}; // Almacenará los tokens de sesión
 
 
 
@@ -9,10 +10,14 @@ exports.login = (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
+        const sessionId = Math.random().toString(36).substring(2, 15); // Crea un ID de sesión simple
+        sessions[sessionId] = user; // Guarda el usuario en la sesión
+
         return res.status(400).json({ mensaje: 'Nombre de usuario y contraseña son requeridos.' });
     }
 
     if (username === 'testuser' && password === 'testpassword') {
+        console.log("Incio de sesión exitoso.")
         return res.status(200).json({ mensaje: 'Inicio de sesión exitoso.' });
     } else {
         return res.status(401).json({ mensaje: 'Credenciales inválidas.' });
@@ -23,7 +28,6 @@ exports.login = (req, res) => {
 //Logica para el reguistro de nuevos usuarios 
 exports.register = (req, res) => {
 
-    console.log('REGISTOR <-------')
     // Definiendo variables que se llegaran en JSON para validacion 
 
     const { username, fullName, password, confirmPassword } = req.body;
@@ -49,9 +53,9 @@ exports.register = (req, res) => {
         return res.status(409).json({ mensaje: 'El nombre de usuario ya existe. --> INTENTE CON UNA NUEVA  ' });
     }
     // Si todas las validaciones pasan, el usuario se puede crear.
-
+    console.log("Usuario registrado exitosamente. : "  );
     // (En un proyecto real, aquí iría el código para guardar el usuario en la BD y manejar la foto de perfil)
-    return res.status(201).json({ mensaje: 'Usuario registrado exitosamente.' });
+    return res.status(201).json({ mensaje: 'Usuario registrado exitosamente.', });
 }
 
 
@@ -99,7 +103,8 @@ const galleryData = [
 // Controlador para obtener la galería completa
 exports.getGallery = (req, res) => {
     // En la  aplicación real, aquí harías una consulta a la base de datos
-    // para obtener todas las obras de arte.
+    // para obtener todas las obras de arte.cls
+
     res.status(200).json(galleryData);
 };
 
@@ -126,7 +131,7 @@ exports.acquire = (req, res) => {
     // La obra de arte cambia de status de disponibre al ser adquirida 
     artwork.isAvailable = false;
     //S guarda en el registro del usuario la obra de arte adquirida (id del la obra de arte)
-    user.acquiredAart.push(artwork) 
+    user.acquiredAart.push(artwork)
 
     res.status(200).json({
         mensaje: "Transacción exitosa. La obra ha sido adquirida.",
@@ -137,6 +142,13 @@ exports.acquire = (req, res) => {
 
 // Logica para mostrar TODA LA INFORMACION del perfil del usuarios 
 exports.getProfile = (req, res) => {
+    const { sessionId } = req.body;
+    const sessionUser = sessions[sessionId];
+
+    if (!sessionUser) {
+        return res.status(401).json({ mensaje: 'No autorizado. Por favor, inicie sesión.' });
+    }
+
     res.status(200).json({
         username: user.username,
         fullName: user.fullName,
@@ -156,7 +168,7 @@ exports.addBalance = (req, res) => {
         return res.status(400).json({ mensaje: "Monto inválido. Debe ser un número positivo." });
     }
 
-    user.balance += amount; 
+    user.balance += amount;
     res.status(200).json({
         mensaje: `Saldo aumentado exitosamente.`,
         newBalance: user.balance
@@ -165,6 +177,8 @@ exports.addBalance = (req, res) => {
 
 // Logica apra cerrar sesion de la cuanta del usuario
 exports.logout = (req, res) => {
+    const { sessionId } = req.body;
+    delete sessions[sessionId]; // Elimina el ID de la sesión
     res.status(200).json({ mensaje: "Sesión cerrada exitosamente." });
 };
 

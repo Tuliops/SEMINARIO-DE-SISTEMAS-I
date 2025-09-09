@@ -1,0 +1,15 @@
+{
+  "name": "practica1_artgallerycloud",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm start --prefix backend\" \"npm start --prefix frontend\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

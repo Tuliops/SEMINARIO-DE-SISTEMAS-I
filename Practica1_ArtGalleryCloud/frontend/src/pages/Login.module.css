@@ -1,0 +1,104 @@
+/* login.module.css */
+
+.loginContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 80px); /* El espacio que resta del navbar */
+  background-color: var(--background-color);
+  padding: 20px;
+  box-sizing: border-box;
+}
+.loginBox {
+  background-color: var(--card-bg-color);
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  width: 100%;
+  max-width: 450px;
+  border: 1px solid var(--input-border-color);
+  animation: fadeIn 1s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.loginBox h1 {
+  color: var(--primary-color);
+  margin-bottom: 30px;
+  font-size: 2.2em;
+  text-shadow: 0 0 10px rgba(97, 218, 251, 0.5);
+}
+
+.formGroup {
+  margin-bottom: 25px;
+  text-align: left;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-color);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.9em;
+  letter-spacing: 1px;
+}
+
+.formGroup input {
+  width: calc(100% - 24px);
+  padding: 14px 12px;
+  border: 1px solid var(--input-border-color);
+  border-radius: 8px;
+  background-color: var(--input-bg-color);
+  color: var(--text-color);
+  font-size: 1em;
+  transition: all 0.3s ease;
+}
+
+.formGroup input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.3);
+}
+
+.loginButton {
+  width: 100%;
+  padding: 15px;
+  background-color: var(--button-bg-color);
+  color: var(--button-text-color);
+  border: none;
+  border-radius: 8px;
+  font-size: 1.2em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.loginButton:hover {
+  background-color: #4aabc4;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.registerLink {
+  margin-top: 25px;
+  color: var(--text-color);
+  font-size: 0.9em;
+}
+
+.registerLink a {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: bold;
+  transition: color 0.3s ease;
+}
+
+.registerLink a:hover {
+  color: #4aabc4;
+  text-decoration: underline;
+}

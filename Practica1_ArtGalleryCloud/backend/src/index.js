@@ -1,3 +1,4 @@
+
 // Importa el módulo 'express', que es el framework de Node.js para crear el servidor.
 const express = require('express');
 
@@ -6,6 +7,13 @@ const app = express();
 
 // Importa el módulo 'cors', que es el middleware para permitir peticiones desde el frontend.
 const cors = require('cors');
+
+//para imagenes local 
+const pathImg = require('path');
+// Esto hace que la carpeta 'images' sea accesible desde la URL '/images'
+app.use('/images', express.static(pathImg.join(__dirname, '/images')));
+
+
 
 // Usa el middleware CORS aquí para permitir peticiones desde el frontend.
 // ¡Este debe ir antes de definir tus rutas para que funcione!

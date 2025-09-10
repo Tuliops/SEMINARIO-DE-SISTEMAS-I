@@ -1,3 +1,7 @@
+
+
+
+
 // Simulación de base de datos en memoria
 const database = {
   users: [
@@ -6,7 +10,7 @@ const database = {
       username: "testuser",
       fullName: "Usuario de Prueba",
       password: "testpassword", // En producción, esto debería estar encriptado
-      profilePic: "https://via.placeholder.com/150",
+      profilePic: "http://localhost:3000/images/basic_porfile.png",
       balance: 500.00,
       acquiredArt: []
     }
@@ -81,34 +85,33 @@ const findArtworkById = (id) => {
 };
 
 
-//testuser
-
-exports.testUser = (req,res) => {
-    return res.status(201).json({ 
+exports.testUser = (req, res) => {
+  return res.status(201).json({
     mensaje: 'TEST UP.'
-   
   });
 }
 
-// Logica para el Login de los Usuarios 
+// Logica para el Login de los Usuarios
 exports.login = (req, res) => {
   const { username, password } = req.body;
-  
+
   if (!username || !password) {
     return res.status(400).json({ mensaje: 'Nombre de usuario y contraseña son requeridos.' });
   }
 
   const user = findUserByUsername(username);
-  
+
   if (user && user.password === password) {
     const sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    database.sessions[sessionId] = { 
+    database.sessions[sessionId] = {
       userId: user.id,
       createdAt: new Date()
     };
-    
+
     console.log("Inicio de sesión exitoso para:", username);
-    return res.status(200).json({ 
+    console.log("Estado actual de las sesiones:", database.sessions);
+
+    return res.status(200).json({
       mensaje: 'Inicio de sesión exitoso.',
       sessionId: sessionId,
       user: {
@@ -124,16 +127,16 @@ exports.login = (req, res) => {
   }
 };
 
-// Logica para el registro de nuevos usuarios 
+// Logica para el registro de nuevos usuarios
 exports.register = (req, res) => {
   const { username, fullName, password, confirmPassword } = req.body;
 
-  // Validar que todos los campos obligatorios esten presentes 
+  // Validar que todos los campos obligatorios esten presentes
   if (!username || !fullName || !password || !confirmPassword) {
     return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
   }
 
-  // Validar que la contraseña y la confirmación de la contraseña coincidan 
+  // Validar que la contraseña y la confirmación de la contraseña coincidan
   if (password !== confirmPassword) {
     return res.status(400).json({ error: 'La contraseña y la confirmación no coinciden.' });
   }
@@ -155,9 +158,9 @@ exports.register = (req, res) => {
   };
 
   database.users.push(newUser);
-  
+
   console.log("Usuario registrado exitosamente:", username);
-  return res.status(201).json({ 
+  return res.status(201).json({
     mensaje: 'Usuario registrado exitosamente.',
     user: {
       id: newUser.id,
@@ -176,7 +179,7 @@ exports.getGallery = (req, res) => {
 exports.acquire = (req, res) => {
   const { artworkId } = req.body;
   const sessionId = req.headers.authorization?.replace('Bearer ', '');
-  
+
   if (!sessionId || !database.sessions[sessionId]) {
     return res.status(401).json({ mensaje: 'No autorizado. Por favor, inicie sesión.' });
   }
@@ -192,11 +195,11 @@ exports.acquire = (req, res) => {
   if (!artwork) {
     return res.status(404).json({ mensaje: "Obra de arte no encontrada." });
   }
-  
+
   if (!artwork.isAvailable) {
     return res.status(409).json({ mensaje: "La obra de arte no está disponible para la venta." });
   }
-  
+
   if (user.balance < artwork.price) {
     return res.status(402).json({ mensaje: "Saldo insuficiente para realizar la compra." });
   }
@@ -215,9 +218,15 @@ exports.acquire = (req, res) => {
 
 // Logica para mostrar TODA LA INFORMACION del perfil del usuario
 exports.getProfile = (req, res) => {
-  const sessionId = req.headers.authorization?.replace('Bearer ', '');
-  
+  console.log("Iniciando solicitud GET PERFIL...");
+  const sessionId = req.body.sessionId
+
+  console.log("Sesión recibida en encabezado:", sessionId);
+  console.log("Estado de las sesiones en la base de datos:", database.sessions[sessionId]);
+
+  // Verificamos si la sesión existe en nuestra "base de datos"
   if (!sessionId || !database.sessions[sessionId]) {
+    console.log("Sesión no válida o no encontrada.");
     return res.status(401).json({ mensaje: 'No autorizado. Por favor, inicie sesión.' });
   }
 
@@ -225,11 +234,13 @@ exports.getProfile = (req, res) => {
   const user = findUserById(userId);
 
   if (!user) {
+    console.log("Usuario no encontrado para el ID de sesión:", userId);
     return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
   }
+  console.log("Perfil obtenido para el usuario:", user.username);
 
   // Obtener información detallada de las obras adquiridas
-  const purchasedArtDetails = user.acquiredArt.map(artId => 
+  const purchasedArtDetails = user.acquiredArt.map(artId =>
     findArtworkById(artId)
   ).filter(art => art !== undefined);
 
@@ -242,11 +253,11 @@ exports.getProfile = (req, res) => {
   });
 };
 
-// Logica para aumentar el saldo del usuario 
+// Logica para aumentar el saldo del usuario
 exports.addBalance = (req, res) => {
   const { amount } = req.body;
   const sessionId = req.headers.authorization?.replace('Bearer ', '');
-  
+
   if (!sessionId || !database.sessions[sessionId]) {
     return res.status(401).json({ mensaje: 'No autorizado. Por favor, inicie sesión.' });
   }
@@ -263,7 +274,7 @@ exports.addBalance = (req, res) => {
   }
 
   user.balance += amount;
-  
+
   res.status(200).json({
     mensaje: `Saldo aumentado exitosamente.`,
     newBalance: user.balance
@@ -273,7 +284,7 @@ exports.addBalance = (req, res) => {
 // Logica para cerrar sesión de la cuenta del usuario
 exports.logout = (req, res) => {
   const sessionId = req.body.sessionId || req.headers.authorization?.replace('Bearer ', '');
-  
+
   if (sessionId && database.sessions[sessionId]) {
     delete database.sessions[sessionId];
     res.status(200).json({ mensaje: "Sesión cerrada exitosamente." });
@@ -284,9 +295,9 @@ exports.logout = (req, res) => {
 
 // Controlador para editar el perfil del usuario
 exports.editProfile = (req, res) => {
-  const { username, fullName, profilePic, currentPassword, newPassword } = req.body;
+  const { username, fullName, profilePic, currentPassword, newPassword } = req.body
   const sessionId = req.headers.authorization?.replace('Bearer ', '');
-  
+
   if (!sessionId || !database.sessions[sessionId]) {
     return res.status(401).json({ mensaje: 'No autorizado. Por favor, inicie sesión.' });
   }
@@ -337,7 +348,7 @@ exports.editProfile = (req, res) => {
 // Controlador para obtener las obras adquiridas por el usuario
 exports.getPurchasedArt = (req, res) => {
   const sessionId = req.headers.authorization?.replace('Bearer ', '');
-  
+
   if (!sessionId || !database.sessions[sessionId]) {
     return res.status(401).json({ mensaje: 'No autorizado. Por favor, inicie sesión.' });
   }
@@ -350,7 +361,7 @@ exports.getPurchasedArt = (req, res) => {
   }
 
   // Obtener información detallada de las obras adquiridas
-  const purchasedArtDetails = user.acquiredArt.map(artId => 
+  const purchasedArtDetails = user.acquiredArt.map(artId =>
     findArtworkById(artId)
   ).filter(art => art !== undefined);
 
@@ -364,7 +375,7 @@ exports.getDatabase = (req, res) => {
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   });
-  
+
   res.status(200).json({
     users: usersWithoutPasswords,
     sessions: database.sessions,

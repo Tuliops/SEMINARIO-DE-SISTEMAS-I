@@ -23,6 +23,8 @@ const ProfilePage = () => {
     const fetchUserData = async () => {
       try {
         const sessionId = localStorage.getItem('sessionId');
+
+
         if (!sessionId) {
           navigate('/');
           return;
@@ -34,8 +36,10 @@ const ProfilePage = () => {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ sessionId })
+
         });
 
+        console.log(response)
         if (response.ok) {
           const userData = await response.json();
           setFormData({
@@ -106,11 +110,14 @@ const ProfilePage = () => {
       const response = await fetch('http://localhost:3000/api/user/edit-profile', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          // Aquí se añade el SessionID al header de la petición.
+          'Authorization': `Bearer ${sessionId}`
         },
         body: JSON.stringify({
           username: formData.username,
           fullName: formData.fullName,
+          // Asegúrate de que formData.profilePic contenga la URL de la imagen
           profilePic: formData.profilePic,
           currentPassword: formData.currentPassword
         })
@@ -121,7 +128,7 @@ const ProfilePage = () => {
         setEditMode(false);
         setSuccess('Perfil actualizado correctamente.');
         setTimeout(() => setSuccess(''), 3000);
-        
+
         // Actualizar datos locales
         setFormData({
           ...formData,
@@ -201,15 +208,15 @@ const ProfilePage = () => {
     <div className={styles.profileContainer}>
       <div className={styles.profileCard}>
         <h2>Mi Perfil</h2>
-        
+
         {error && <div className={styles.errorMessage}>{error}</div>}
         {success && <div className={styles.successMessage}>{success}</div>}
-        
+
         <div className={styles.profileHeader}>
           <div className={styles.imageContainer}>
-            <img 
-              src={previewImage || '/default-avatar.png'} 
-              alt="Profile" 
+            <img
+              src={previewImage || '/default-avatar.png'}
+              alt="Profile"
               className={styles.profileImage}
             />
             {editMode && (
@@ -227,11 +234,11 @@ const ProfilePage = () => {
               </div>
             )}
           </div>
-          
+
           <div className={styles.balanceSection}>
             <h3>Saldo actual</h3>
             <p className={styles.balance}>${formData.balance?.toFixed(2) || '0.00'}</p>
-            <button 
+            <button
               onClick={handleAddBalance}
               className={styles.addBalanceBtn}
             >
@@ -239,7 +246,7 @@ const ProfilePage = () => {
             </button>
           </div>
         </div>
-        
+
         <div className={styles.formGroup}>
           <label htmlFor="username">Nombre de usuario</label>
           <input
@@ -252,7 +259,7 @@ const ProfilePage = () => {
             className={editMode ? styles.editable : styles.disabled}
           />
         </div>
-        
+
         <div className={styles.formGroup}>
           <label htmlFor="fullName">Nombre completo</label>
           <input
@@ -265,7 +272,7 @@ const ProfilePage = () => {
             className={editMode ? styles.editable : styles.disabled}
           />
         </div>
-        
+
         {editMode && (
           <>
             <div className={styles.formGroup}>
@@ -280,7 +287,7 @@ const ProfilePage = () => {
                 className={styles.editable}
               />
             </div>
-            
+
             <div className={styles.formGroup}>
               <label htmlFor="currentPassword">Contraseña actual *</label>
               <input
@@ -295,17 +302,17 @@ const ProfilePage = () => {
             </div>
           </>
         )}
-        
+
         <div className={styles.buttonGroup}>
           {editMode ? (
             <>
-              <button 
+              <button
                 onClick={handleSave}
                 className={styles.saveBtn}
               >
                 Guardar cambios
               </button>
-              <button 
+              <button
                 onClick={() => setEditMode(false)}
                 className={styles.cancelBtn}
               >
@@ -314,13 +321,13 @@ const ProfilePage = () => {
             </>
           ) : (
             <>
-              <button 
+              <button
                 onClick={() => setEditMode(true)}
-                className={styles.editBtn}
+                className={styles.editBtn}j
               >
                 Editar perfil
               </button>
-              <button 
+              <button
                 onClick={handleLogout}
                 className={styles.logoutBtn}
               >

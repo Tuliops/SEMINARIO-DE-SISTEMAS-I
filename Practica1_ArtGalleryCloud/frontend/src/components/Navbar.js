@@ -38,8 +38,8 @@ const Navbar = () => {
         {sessionId ? ( // Si hay un sessionId, el usuario está logueado
           <>
             <Link to="/gallery">Galería</Link>
-            <Link to="/profile">Perfil</Link>
-            <Link to="/purchased-art">Obras Adquiridas</Link> {/* Ruta para obras adquiridas */}
+            <Link to="/porfile">Perfil</Link >
+            <Link to="/purchased-art">Obras Adquiridas</Link>{/* Ruta para obras adquiridas */}
             <Link to="/edit-profile">Editar Perfil</Link> {/* Ruta para editar perfil */}
             <button onClick={handleLogout} className={styles.logoutButton}>
               Cerrar Sesión

@@ -17,4 +17,7 @@ router.get('/testUser', authController.testUser)
 
 // Ruta para aumentar Saldo de la Cuenta  
 router.post('/add-balance', authController.addBalance);
+
+// Ruta para cerrar sesion del usuario  
+router.post('/logout', authController.logout);
 module.exports = router;

@@ -1,0 +1,109 @@
+/* src/components/Gallery.css */
+
+/* Variables CSS para modo oscuro */
+:root {
+    --bg-color: #121212;
+    --text-color: #e0e0e0;
+    --card-bg-color: #1e1e1e;
+    --card-shadow: rgba(0, 0, 0, 0.4);
+    --button-bg-color: #6a0dad;
+    --button-text-color: #ffffff;
+    --button-hover-bg-color: #8a2be2;
+    --transition-speed: 0.3s;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 20px;
+}
+
+.gallery-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.artwork-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
+}
+
+.main-title {
+    text-align: center;
+    color: var(--text-color);
+    font-size: 2.5em;
+    margin-bottom: 40px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.gallery-item {
+    background-color: var(--card-bg-color);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px var(--card-shadow);
+    transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.gallery-item:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 25px rgba(106, 13, 173, 0.5);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    display: block;
+    transition: transform var(--transition-speed) ease;
+}
+
+.gallery-item:hover img {
+    transform: scale(1.05);
+}
+
+.item-content {
+    padding: 15px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.item-content h3 {
+    margin-top: 0;
+    font-size: 1.25em;
+    color: var(--text-color);
+}
+
+.item-content p {
+    font-style: italic;
+    color: #b0b0b0;
+    margin-bottom: 15px;
+}
+
+.acquire-button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--button-bg-color);
+    color: var(--button-text-color);
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color var(--transition-speed) ease, transform 0.1s ease;
+}
+
+.acquire-button:hover {
+    background-color: var(--button-hover-bg-color);
+}
+
+.acquire-button:active {
+    transform: scale(0.98);
+}

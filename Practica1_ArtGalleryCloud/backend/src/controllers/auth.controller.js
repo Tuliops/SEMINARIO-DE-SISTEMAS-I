@@ -19,48 +19,40 @@ const database = {
   artworks: [
     {
       id: 1,
-      title: "El Grito",
-      author: "Edvard Munch",
-      year: 1893,
-      price: 250.00,
-      isAvailable: false,
-      image: "https://via.placeholder.com/300x200/FF0000/FFFFFF?text=El+Grito"
+      isAvailable: true,
+      title: "Noche estrellada",
+      artist: "Vincent van Gogh",
+      image: "https://tse1.mm.bing.net/th/id/OIP.m9JXrZObIzEXpuwUKx4rqQHaFj?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+      description: "Una de las obras más famosas de Van Gogh, pintada en 1889.",
+      price: 100
+
     },
     {
       id: 2,
-      title: "La noche estrellada",
-      author: "Vincent van Gogh",
-      year: 1889,
-      price: 300.00,
       isAvailable: true,
-      image: "https://via.placeholder.com/300x200/0000FF/FFFFFF?text=Noche+Estrellada"
-    },
-    {
-      id: 3,
-      title: "La última cena",
-      author: "Leonardo da Vinci",
-      year: 1498,
-      price: 550.00,
-      isAvailable: true,
-      image: "https://via.placeholder.com/300x200/00FF00/FFFFFF?text=Ultima+Cena"
+      title: "Dark Side Moon",
+      artist: "Pink Floid",
+      image: "https://tse4.mm.bing.net/th/id/OIP.CdQig4btMwmR0Kq5zSMhaQHaFB?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
+      description: " is the eighth studio LP by Pink Floyd. It was recorded at Abbey Road Studios in London, England, and released in 1973",
+      price: 200
     },
     {
       id: 4,
-      title: "La persistencia de la memoria",
-      author: "Salvador Dalí",
-      year: 1931,
-      price: 400.00,
       isAvailable: true,
-      image: "https://via.placeholder.com/300x200/FFFF00/000000?text=Relojes+Derritiendose"
+      title: "El grito",
+      artist: "Edvard Munch",
+      image: "https://angeladearte.wordpress.com/wp-content/uploads/2016/08/120503_exp_scream-ex-crop-rectangle3-large.jpg",
+      description: "Una obra expresionista que simboliza la ansiedad humana.",
+      price: 400
     },
     {
       id: 5,
-      title: "El beso",
-      author: "Gustav Klimt",
-      year: 1908,
-      price: 350.00,
       isAvailable: true,
-      image: "https://via.placeholder.com/300x200/FF00FF/FFFFFF?text=El+Beso"
+      title: "La creación de Adán",
+      artist: "	Miguel Ángel",
+      image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Michelangelo_-_Creation_of_Adam_%28cropped%29.jpg/1200px-Michelangelo_-_Creation_of_Adam_%28cropped%29.jpg",
+      description: "La creación de Adán es un fresco en la bóveda de la Capilla Sixtina, pintado por Miguel Ángel alrededor del año 1511",
+      price: 1500
     }
   ]
 };
@@ -179,10 +171,13 @@ exports.getGallery = (req, res) => {
 exports.acquire = (req, res) => {
   const { artworkId } = req.body;
   const sessionId = req.headers.authorization?.replace('Bearer ', '');
+  console.log("Sesión recibida en encabezado:", sessionId);
+  console.log("Estado de las sesiones en la base de datos:", database.sessions[sessionId]);
 
   if (!sessionId || !database.sessions[sessionId]) {
     return res.status(401).json({ mensaje: 'No autorizado. Por favor, inicie sesión.' });
   }
+
 
   if (!artworkId) {
     return res.status(400).json({ mensaje: "El ID de la obra de arte es requerido." });
@@ -253,27 +248,52 @@ exports.getProfile = (req, res) => {
   });
 };
 
-// Logica para aumentar el saldo del usuario
+// Lógica para aumentar el saldo del usuario
 exports.addBalance = (req, res) => {
-  const { amount } = req.body;
+
+  // 1. Desestructura el cuerpo de la solicitud para obtener el monto y la contraseña.
+
+  const { amount, password } = req.body; // 👈 Ahora también se espera la contraseña
+  // 2. Extrae el ID de la sesión del encabezado de autorización.
+
   const sessionId = req.headers.authorization?.replace('Bearer ', '');
 
+  // 3. Verifica si existe un ID de sesión válido.
+  // Si no hay sesión, responde con un error de "No autorizado".
   if (!sessionId || !database.sessions[sessionId]) {
     return res.status(401).json({ mensaje: 'No autorizado. Por favor, inicie sesión.' });
   }
+  // 4. Valida el monto. Debe ser un número positivo.
 
   if (!amount || typeof amount !== 'number' || amount <= 0) {
     return res.status(400).json({ mensaje: "Monto inválido. Debe ser un número positivo." });
   }
+  // 5. Valida que se haya enviado la contraseña.
+
+  if (!password) { // 👈 Validación de que se envió la contraseña
+    return res.status(400).json({ mensaje: "Debe ingresar su contraseña." });
+  }
+  // 6. Busca al usuario en la "base de datos" usando el ID de la sesión.
 
   const userId = database.sessions[sessionId].userId;
   const user = findUserById(userId);
+
+  // 7. Verifica si el usuario existe. Si no, responde con un error de "no encontrado".
 
   if (!user) {
     return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
   }
 
+  // 8. Compara la contraseña enviada con la contraseña del usuario.
+  // Si no coinciden, responde con un error de "contraseña incorrecta".
+
+  if (user.password !== password) {
+    return res.status(401).json({ mensaje: 'Contraseña incorrecta.' });
+  }
+
+  // 9. Si todas las validaciones pasan, aumenta el saldo del usuario.
   user.balance += amount;
+  // 10. Responde con un mensaje de éxito y el nuevo saldo.
 
   res.status(200).json({
     mensaje: `Saldo aumentado exitosamente.`,

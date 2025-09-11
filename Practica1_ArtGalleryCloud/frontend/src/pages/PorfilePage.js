@@ -20,6 +20,8 @@ const ProfilePage = () => {
 
   // Cargar datos del usuario desde el backend
   useEffect(() => {
+
+    //Para mostrar la Informacion del Usuario Logueado
     const fetchUserData = async () => {
       try {
         const sessionId = localStorage.getItem('sessionId');
@@ -66,6 +68,7 @@ const ProfilePage = () => {
     fetchUserData();
   }, [navigate]);
 
+  //Para Ingresar Cambios
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -73,7 +76,7 @@ const ProfilePage = () => {
       [name]: value
     });
   };
-
+  //Cambio de Imagen de Perfil 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -90,6 +93,8 @@ const ProfilePage = () => {
     }
   };
 
+
+  //Si se realizan Cambios se 
   const handleSave = async () => {
     try {
       setError('');
@@ -145,37 +150,79 @@ const ProfilePage = () => {
     }
   };
 
-  const handleAddBalance = async () => {
-    const amount = parseFloat(prompt('¿Cuánto saldo deseas agregar?'));
-    if (!isNaN(amount) && amount > 0) {
-      try {
-        const response = await fetch('http://localhost:3000/api/user/add-balance', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ amount })
-        });
 
-        if (response.ok) {
-          const result = await response.json();
-          setFormData({
-            ...formData,
-            balance: result.newBalance
-          });
-          setSuccess(`Se agregaron $${amount} a tu saldo.`);
-          setTimeout(() => setSuccess(''), 3000);
-        } else {
-          const errorData = await response.json();
-          setError(errorData.mensaje || 'Error al agregar saldo');
-        }
-      } catch (error) {
-        console.error('Error de red:', error);
-        setError('Error de conexión al agregar saldo');
+  // Aumentar Saldo del Usuario
+  // En tu frontend:
+  const handleAddBalance = async () => {
+
+    // 1. Pide al usuario que ingrese el monto a agregar.
+
+    const amount = parseFloat(prompt('¿Cuánto saldo deseas agregar?'));
+
+    // 2. Valida que el monto sea un número positivo.
+
+    if (isNaN(amount) || amount <= 0) {
+      setError('Monto inválido. Debe ser un número positivo.');
+      return;
+    }
+
+    // 3. Pide al usuario su contraseña para confirmar la transacción.
+    const password = prompt('Para confirmar, ingresa tu contraseña:');
+
+    // 4. Valida que la contraseña no esté vacía.
+    if (!password) {
+      setError('Operación cancelada. Debes ingresar la contraseña.');
+      return;
+    }
+    // 5. Obtiene el token de sesión del almacenamiento local.
+    const sessionId = localStorage.getItem('sessionId');
+    // 6. Verifica si el token existe, indicando que el usuario está autenticado.
+
+    if (!sessionId) {
+      setError('No estás autenticado. Por favor, inicia sesión.');
+      return;
+    }
+
+    try {
+
+      // 7. Envía la solicitud al backend usando `fetch`.
+
+      const response = await fetch('http://localhost:3000/api/user/add-balance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionId}`
+        },
+        // 8. Envía el token de sesión en el encabezado 'Authorization'.
+        body: JSON.stringify({ amount, password })
+      });
+
+      // 10. Verifica si la respuesta del servidor fue exitosa (código 200).
+
+      if (response.ok) {
+        // 11. Procesa la respuesta exitosa. Actualiza el saldo y muestra un mensaje de éxito.
+
+        const result = await response.json();
+        setFormData({
+          ...formData,
+          balance: result.newBalance
+        });
+        setSuccess(`Se agregaron $${amount} a tu saldo.`);
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        // 12. Procesa la respuesta de error. Muestra un mensaje de error del servidor.
+        const errorData = await response.json();
+        setError(errorData.mensaje || 'Error al agregar saldo');
       }
+    } catch (error) {
+
+      // 13. Captura y maneja errores de red (por ejemplo, si el servidor está caído).
+      console.error('Error de red:', error);
+      setError('Error de conexión al agregar saldo');
     }
   };
 
+  //Para Cerrar Sesion del Usuario
   const handleLogout = async () => {
     try {
       const sessionId = localStorage.getItem('sessionId');
@@ -237,7 +284,7 @@ const ProfilePage = () => {
 
           <div className={styles.balanceSection}>
             <h3>Saldo actual</h3>
-            <p className={styles.balance}>${formData.balance?.toFixed(2) || '0.00'}</p>
+            <p className={styles.balance}>Q{formData.balance?.toFixed(2) || '0.00'}</p>
             <button
               onClick={handleAddBalance}
               className={styles.addBalanceBtn}
@@ -323,7 +370,7 @@ const ProfilePage = () => {
             <>
               <button
                 onClick={() => setEditMode(true)}
-                className={styles.editBtn}j
+                className={styles.editBtn} j
               >
                 Editar perfil
               </button>

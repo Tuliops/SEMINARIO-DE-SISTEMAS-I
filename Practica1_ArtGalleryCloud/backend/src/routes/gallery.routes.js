@@ -12,8 +12,7 @@ router.get('/gallery', authController.getGallery);
 router.post('/acquire', authController.acquire);
 
 
-// Ruta para cerrar sesion del usuario  
-router.post('/logout', authController.logout);
+
 
 
 

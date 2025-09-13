@@ -1,0 +1,101 @@
+/* src/components/PurchasedArt.css */
+
+/* Variables CSS para modo oscuro */
+:root {
+    --bg-color: #121212;
+    --text-color: #e0e0e0;
+    --card-bg-color: #1e1e1e;
+    --card-shadow: rgba(0, 0, 0, 0.4);
+    --purchased-button-bg: #555;
+    --purchased-button-text: #bbb;
+    --transition-speed: 0.3s;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 20px;
+}
+
+.purchased-art-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.main-title {
+    text-align: center;
+    color: var(--text-color);
+    font-size: 2.5em;
+    margin-bottom: 40px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.artwork-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
+}
+
+.gallery-item {
+    background-color: var(--card-bg-color);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px var(--card-shadow);
+    transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    display: block;
+}
+
+.item-content {
+    padding: 15px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.item-content h3 {
+    margin-top: 0;
+    font-size: 1.25em;
+    color: var(--text-color);
+}
+
+.item-content p {
+    font-style: italic;
+    color: #b0b0b0;
+    margin-bottom: 15px;
+}
+
+.purchased-button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--purchased-button-bg);
+    color: var(--purchased-button-text);
+    font-size: 1em;
+    font-weight: bold;
+    cursor: not-allowed;
+}
+
+.loading-message,
+.no-items-message,
+.error-message {
+    text-align: center;
+    font-size: 1.2em;
+    padding: 20px;
+}
+
+.error-message {
+    color: #e57373;
+}

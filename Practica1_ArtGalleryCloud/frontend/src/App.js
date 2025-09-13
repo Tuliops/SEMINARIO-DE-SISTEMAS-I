@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ProfilePage from './pages/PorfilePage';
 import Gallery from './pages/gallery'
+import PurchasedArt from './pages/PurchasedArt';
 
 //import Gallery from './pages/Gallery'; // Asegúrate de importar Gallery
 //import Profile from './pages/Profile'; // Asegúrate de importar Profile
@@ -24,6 +25,8 @@ const App = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/porfile" element={<ProfilePage />} />
           <Route path="/gallery" element={<Gallery />} />
+          <Route path="/PurchasedArt" element={<PurchasedArt />} />
+
           {/**/}
           {/* <Route path="/profile" element={<Profile />} />*/}
           {/*<Route path="/purchased-art" element={<PurchasedArt />} />*/}

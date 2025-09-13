@@ -39,8 +39,7 @@ const Navbar = () => {
           <>
             <Link to="/gallery">Galería</Link>
             <Link to="/porfile">Perfil</Link >
-            <Link to="/purchased-art">Obras Adquiridas</Link>{/* Ruta para obras adquiridas */}
-            <Link to="/edit-profile">Editar Perfil</Link> {/* Ruta para editar perfil */}
+            <Link to="/PurchasedArt">Obras Adquiridas</Link>{/* Ruta para obras adquiridas */}
             <button onClick={handleLogout} className={styles.logoutButton}>
               Cerrar Sesión
             </button>

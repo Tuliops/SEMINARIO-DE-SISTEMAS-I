@@ -20,4 +20,6 @@ router.post('/add-balance', authController.addBalance);
 
 // Ruta para cerrar sesion del usuario  
 router.post('/logout', authController.logout);
+
+router.get('/purchasedArt',authController.getPurchasedArt)
 module.exports = router;

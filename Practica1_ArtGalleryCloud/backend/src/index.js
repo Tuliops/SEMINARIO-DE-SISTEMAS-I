@@ -8,6 +8,10 @@ const app = express();
 // Importa el módulo 'cors', que es el middleware para permitir peticiones desde el frontend.
 const cors = require('cors');
 
+// Importa el módulo 'mysql' para la conexión a la base de datos.
+const mysql = require('mysql');
+
+
 //para imagenes local 
 const pathImg = require('path');
 // Esto hace que la carpeta 'images' sea accesible desde la URL '/images'
@@ -37,6 +41,42 @@ const usersRoutes = require('./routes/user.routes');
 // Esto permite que el servidor entienda y analice los datos JSON
 // que se envían en el cuerpo de las peticiones POST.
 app.use(express.json());
+
+// --- AGREGADO PARA LA CONEXIÓN A MYSQL ---
+
+// Configuración de la conexión a la base de datos MySQL
+
+const db = mysql.createConnection({
+    host: 'localhost',      // Reemplaza con la dirección de tu host
+    user: 'tu_usuario',     // Reemplaza con tu nombre de usuario de MySQL
+    password: 'tu_password',// Reemplaza con tu contraseña de MySQL
+    database: 'tu_db'       // Reemplaza con el nombre de tu base de datos
+});
+
+// Conectar a la base de datos
+db.connect(err => {
+    if (err) {
+        console.error('Error al conectar a la base de datos:', err);
+        return;
+    }
+    console.log('¡Conexión a MySQL exitosa!');
+});
+
+// Ruta de ejemplo para obtener datos de la base de datos
+app.get('/api/productos', (req, res) => {
+    const sql = 'SELECT * FROM productos';
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error('Error al ejecutar la consulta:', err);
+            return res.status(500).json({ error: 'Error al obtener los productos.' });
+        }
+        // Envía los resultados como respuesta JSON
+        res.json(results);
+    });
+});
+
+
+//-----------------------------------------------------
 
 // Conecta las rutas de autenticación con la aplicación principal.
 // Todas las rutas en 'authRoutes' estarán disponibles bajo el prefijo '/api/auth'.

@@ -1,7 +1,7 @@
 // frontend/src/pages/Register.js
 
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // Asegúrate de importar Link
+import { useNavigate, Link } from 'react-router-dom';
 import styles from './Login.module.css';
 import PopupMessage from '../components/PopupMessage';
 
@@ -10,16 +10,13 @@ const Register = () => {
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [profilePic, setProfilePic] = useState(null); // Estado para la foto de perfil
+  const [profilePic, setProfilePic] = useState(null);
   const [message, setMessage] = useState(null);
   const [messageType, setMessageType] = useState('');
   const navigate = useNavigate();
 
-  // Función para manejar el cambio en el input de archivo
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      // Aquí podrías leer el archivo para mostrar una previsualización
-      // Por ahora, solo guardamos el objeto File o una URL temporal
       setProfilePic(e.target.files[0]); 
     }
   };
@@ -35,26 +32,29 @@ const Register = () => {
     }
 
     try {
-      // En un proyecto real, aquí subirías 'profilePic' a S3 y obtendrías una URL
-      // Por ahora, simulamos una URL o enviamos el nombre del archivo
-      const profilePicUrl = profilePic ? `url_to_uploaded_image/${profilePic.name}` : 'default_profile_pic.jpg';
+      // --- CAMBIOS EN LA LÓGICA DE ENVÍO ---
+      // 1. Crea un objeto FormData para enviar datos mixtos (texto y archivo).
+      const formData = new FormData();
+      formData.append('username', username);
+      formData.append('fullName', fullName);
+      formData.append('password', password);
+      formData.append('confirmPassword', confirmPassword);
+      
+      // 2. Agrega el archivo de la imagen solo si existe.
+      if (profilePic) {
+        formData.append('profilePic', profilePic);
+      }
 
+      // 3. Envía el objeto FormData al backend.
       const response = await fetch('http://localhost:3000/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-            username, 
-            fullName, 
-            password, 
-            confirmPassword,
-            profilePic: profilePicUrl // Envía la URL simulada o el nombre del archivo
-        }),
+        // ¡Importante! No establezcas el 'Content-Type'. El navegador lo hará automáticamente
+        // con el valor correcto para 'multipart/form-data'.
+        body: formData, 
       });
+      
 
       const data = await response.json();
-
       if (response.ok) {
         setMessage(data.mensaje || '¡Registro exitoso! Ahora puedes iniciar sesión.');
         setMessageType('success');
@@ -113,7 +113,7 @@ const Register = () => {
             <input
               type="file"
               id="profilePic"
-              accept="image/*" // Solo acepta archivos de imagen
+              accept="image/*"
               onChange={handleFileChange}
             />
             {profilePic && (

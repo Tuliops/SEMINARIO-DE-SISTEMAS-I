@@ -33,11 +33,10 @@ const ProfilePage = () => {
         }
 
         const response = await fetch('http://localhost:3000/api/user/profile', {
-          method: 'POST',
+          method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'x-session-id': sessionId // Envía el sessionId en un encabezado
           },
-          body: JSON.stringify({ sessionId })
 
         });
 
@@ -227,11 +226,10 @@ const ProfilePage = () => {
     try {
       const sessionId = localStorage.getItem('sessionId');
       const response = await fetch('http://localhost:3000/api/logout', {
-        method: 'POST',
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
+          'x-session-id': sessionId // Envía el sessionId en un encabezado
         },
-        body: JSON.stringify({ sessionId }),
       });
 
       if (response.ok) {

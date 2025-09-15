@@ -1,7 +1,5 @@
 
 
-
-
 // Simulación de base de datos en memoria
 const database = {
   users: [
@@ -49,13 +47,22 @@ const database = {
       id: 5,
       isAvailable: true,
       title: "La creación de Adán",
-      artist: "	Miguel Ángel",
+      artist: " Miguel Ángel",
       image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Michelangelo_-_Creation_of_Adam_%28cropped%29.jpg/1200px-Michelangelo_-_Creation_of_Adam_%28cropped%29.jpg",
       description: "La creación de Adán es un fresco en la bóveda de la Capilla Sixtina, pintado por Miguel Ángel alrededor del año 1511",
       price: 1500
     }
   ]
 };
+
+// --- IMPORTACIONES ADICIONALES ---
+// Importa el módulo 'aws-sdk' y 'crypto' para subir a S3.
+const AWS = require('aws-sdk');
+const { log } = require('console');
+const crypto = require('crypto');
+
+// Crea una instancia de S3 (ya configurada en index.js)
+const s3 = new AWS.S3();
 
 // Función auxiliar para generar IDs únicos
 let nextId = 6;
@@ -119,48 +126,74 @@ exports.login = (req, res) => {
   }
 };
 
-// Logica para el registro de nuevos usuarios
-exports.register = (req, res) => {
+
+//registro de usuarios 
+exports.register = async (req, res) => {
+
   const { username, fullName, password, confirmPassword } = req.body;
-
-  // Validar que todos los campos obligatorios esten presentes
+  const profilePicFile = req.file;
+  // Agregamos esta línea para depurar y ver qué datos de texto llegan
+  console.log("Datos de texto recibidos:", req.body);
+  console.log("Datos de archivo recibidos:", req.file);
   if (!username || !fullName || !password || !confirmPassword) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
-  }
+    console.log('Todos los campos de texto son obligatorios.');
 
-  // Validar que la contraseña y la confirmación de la contraseña coincidan
+    return res.status(400).json({ error: 'Todos los campos de texto son obligatorios.' });
+  }
   if (password !== confirmPassword) {
     return res.status(400).json({ error: 'La contraseña y la confirmación no coinciden.' });
   }
 
-  // Verificar que nombre de usuario no exista
   if (findUserByUsername(username)) {
     return res.status(409).json({ mensaje: 'El nombre de usuario ya existe. Por favor, elige otro.' });
   }
 
-  // Crear nuevo usuario
+
+  let profilePicUrl = "https://via.placeholder.com/150";
+
+  if (profilePicFile) {
+    const uniqueFileName = `${crypto.randomBytes(16).toString('hex')}-${profilePicFile.originalname}`;
+    console.log(process.env.S3_BUCKET_NAME)
+    const s3UploadParams = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: `Fotos_Perfil/${uniqueFileName}`,
+      Body: profilePicFile.buffer,
+      ContentType: profilePicFile.mimetype,
+    };
+
+    try {
+      const s3Result = await s3.upload(s3UploadParams).promise();
+      profilePicUrl = s3Result.Location;
+      console.log("Imagen subida a S3:", profilePicUrl);
+    } catch (s3Error) {
+      console.error("Error al subir la imagen a S3:", s3Error);
+      return res.status(500).json({ mensaje: 'Error al subir la foto de perfil.' });
+    }
+  }
+
   const newUser = {
     id: generateId(),
     username: username,
     fullName: fullName,
     password: password,
-    profilePic: "https://via.placeholder.com/150",
-    balance: 100.00, // Saldo inicial
+    profilePic: profilePicUrl,
+    balance: 100.00,
     acquiredArt: []
   };
 
   database.users.push(newUser);
-
   console.log("Usuario registrado exitosamente:", username);
   return res.status(201).json({
     mensaje: 'Usuario registrado exitosamente.',
     user: {
       id: newUser.id,
       username: newUser.username,
-      fullName: newUser.fullName
+      fullName: newUser.fullName,
+      profilePic: newUser.profilePic
     }
   });
 };
+
 
 // Controlador para obtener la galería completa
 exports.getGallery = (req, res) => {
@@ -214,7 +247,7 @@ exports.acquire = (req, res) => {
 // Logica para mostrar TODA LA INFORMACION del perfil del usuario
 exports.getProfile = (req, res) => {
   console.log("Iniciando solicitud GET PERFIL...");
-  const sessionId = req.body.sessionId
+  const sessionId = req.headers['x-session-id']; // O el nombre del encabezado que uses
 
   console.log("Sesión recibida en encabezado:", sessionId);
   console.log("Estado de las sesiones en la base de datos:", database.sessions[sessionId]);
@@ -367,7 +400,9 @@ exports.editProfile = (req, res) => {
 
 // Controlador para obtener las obras adquiridas por el usuario
 exports.getPurchasedArt = (req, res) => {
-  const sessionId = req.headers.authorization?.replace('Bearer ', '');
+  console.log("OBRAS ADQUIRIDAS ");
+  
+  const sessionId = req.headers['x-session-id']; 
 
   if (!sessionId || !database.sessions[sessionId]) {
     return res.status(401).json({ mensaje: 'No autorizado. Por favor, inicie sesión.' });

@@ -23,8 +23,8 @@ const PurchasedArt = () => {
                 const response = await fetch('http://localhost:3000/api/user/purchasedArt', {
                     method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${sessionId}`
+                                   'x-session-id': sessionId // Envía el sessionId en un encabezado
+
                     }
                 });
 

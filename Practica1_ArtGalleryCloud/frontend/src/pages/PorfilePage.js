@@ -10,7 +10,7 @@ const ProfilePage = () => {
     fullName: '',
     password: '',
     currentPassword: '', // Para validar cambios
-    profilePic: '',
+    profilePic: null, // Cambiado a 'null' para guardar el objeto File
     balance: 0
   });
   const [previewImage, setPreviewImage] = useState('');
@@ -20,12 +20,10 @@ const ProfilePage = () => {
 
   // Cargar datos del usuario desde el backend
   useEffect(() => {
-
-    //Para mostrar la Informacion del Usuario Logueado
+    // Para mostrar la Informacion del Usuario Logueado
     const fetchUserData = async () => {
       try {
         const sessionId = localStorage.getItem('sessionId');
-
 
         if (!sessionId) {
           navigate('/');
@@ -37,19 +35,17 @@ const ProfilePage = () => {
           headers: {
             'x-session-id': sessionId // Envía el sessionId en un encabezado
           },
-
         });
 
-        console.log(response)
         if (response.ok) {
           const userData = await response.json();
           setFormData({
             username: userData.username,
             fullName: userData.fullName,
-            password: '', // No cargamos la contraseña por seguridad
+            password: '', 
             currentPassword: '',
-            profilePic: userData.profilePic,
-            balance: userData.balance
+            profilePic: userData.profilePic, // Mantén la URL de la imagen actual
+            balance: parseFloat(userData.balance)
           });
           setPreviewImage(userData.profilePic || '');
         } else {
@@ -67,7 +63,7 @@ const ProfilePage = () => {
     fetchUserData();
   }, [navigate]);
 
-  //Para Ingresar Cambios
+  // Para Ingresar Cambios
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -75,31 +71,32 @@ const ProfilePage = () => {
       [name]: value
     });
   };
-  //Cambio de Imagen de Perfil 
+
+  // Cambio de Imagen de Perfil 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // En una implementación real, aquí subirías la imagen al servidor
+      // Guarda el objeto 'File' en el estado para enviarlo al backend
+      setFormData({
+        ...formData,
+        profilePic: file 
+      });
+
+      // Muestra una vista previa de la imagen
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewImage(reader.result);
-        setFormData({
-          ...formData,
-          profilePic: reader.result
-        });
       };
       reader.readAsDataURL(file);
     }
   };
 
-
-  //Si se realizan Cambios se 
+  // Si se realizan Cambios
   const handleSave = async () => {
     try {
       setError('');
       setSuccess('');
 
-      // Validaciones
       if (!formData.username || !formData.fullName) {
         setError('Nombre de usuario y nombre completo son obligatorios.');
         return;
@@ -111,20 +108,31 @@ const ProfilePage = () => {
       }
 
       const sessionId = localStorage.getItem('sessionId');
+      
+      // Crea un objeto FormData para enviar datos y archivos
+      const requestBody = new FormData();
+      requestBody.append('username', formData.username);
+      requestBody.append('fullName', formData.fullName);
+      requestBody.append('currentPassword', formData.currentPassword);
+      
+      // Añade el campo de nueva contraseña solo si tiene un valor
+      if (formData.password) {
+        requestBody.append('newPassword', formData.password);
+      }
+      
+      // Si `profilePic` es un objeto File, lo añade al FormData
+      if (formData.profilePic instanceof File) {
+        requestBody.append('profilePic', formData.profilePic);
+      }
+      // Nota: El nombre 'profilePic' aquí debe coincidir con `upload.single('profilePic')` en tu backend.
+
       const response = await fetch('http://localhost:3000/api/user/edit-profile', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          // Aquí se añade el SessionID al header de la petición.
+          // No se necesita 'Content-Type', el navegador lo establece automáticamente con FormData
           'Authorization': `Bearer ${sessionId}`
         },
-        body: JSON.stringify({
-          username: formData.username,
-          fullName: formData.fullName,
-          // Asegúrate de que formData.profilePic contenga la URL de la imagen
-          profilePic: formData.profilePic,
-          currentPassword: formData.currentPassword
-        })
+        body: requestBody // Envía el FormData directamente
       });
 
       if (response.ok) {
@@ -133,11 +141,11 @@ const ProfilePage = () => {
         setSuccess('Perfil actualizado correctamente.');
         setTimeout(() => setSuccess(''), 3000);
 
-        // Actualizar datos locales
         setFormData({
           ...formData,
           password: '',
-          currentPassword: ''
+          currentPassword: '',
+          profilePic: result.user.profilePic // Actualiza la URL de la imagen si se cambió
         });
       } else {
         const errorData = await response.json();
@@ -149,33 +157,25 @@ const ProfilePage = () => {
     }
   };
 
-
+  // El resto del código del componente es el mismo...
+  
   // Aumentar Saldo del Usuario
-  // En tu frontend:
   const handleAddBalance = async () => {
-
-    // 1. Pide al usuario que ingrese el monto a agregar.
-
     const amount = parseFloat(prompt('¿Cuánto saldo deseas agregar?'));
-
-    // 2. Valida que el monto sea un número positivo.
 
     if (isNaN(amount) || amount <= 0) {
       setError('Monto inválido. Debe ser un número positivo.');
       return;
     }
 
-    // 3. Pide al usuario su contraseña para confirmar la transacción.
     const password = prompt('Para confirmar, ingresa tu contraseña:');
 
-    // 4. Valida que la contraseña no esté vacía.
     if (!password) {
       setError('Operación cancelada. Debes ingresar la contraseña.');
       return;
     }
-    // 5. Obtiene el token de sesión del almacenamiento local.
+
     const sessionId = localStorage.getItem('sessionId');
-    // 6. Verifica si el token existe, indicando que el usuario está autenticado.
 
     if (!sessionId) {
       setError('No estás autenticado. Por favor, inicia sesión.');
@@ -183,52 +183,41 @@ const ProfilePage = () => {
     }
 
     try {
-
-      // 7. Envía la solicitud al backend usando `fetch`.
-
       const response = await fetch('http://localhost:3000/api/user/add-balance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${sessionId}`
         },
-        // 8. Envía el token de sesión en el encabezado 'Authorization'.
         body: JSON.stringify({ amount, password })
       });
 
-      // 10. Verifica si la respuesta del servidor fue exitosa (código 200).
-
       if (response.ok) {
-        // 11. Procesa la respuesta exitosa. Actualiza el saldo y muestra un mensaje de éxito.
-
         const result = await response.json();
         setFormData({
           ...formData,
-          balance: result.newBalance
+          balance: parseFloat(result.newBalance)
         });
-        setSuccess(`Se agregaron $${amount} a tu saldo.`);
+        setSuccess(`Se agregaron Q${amount} a tu saldo.`);
         setTimeout(() => setSuccess(''), 3000);
       } else {
-        // 12. Procesa la respuesta de error. Muestra un mensaje de error del servidor.
         const errorData = await response.json();
         setError(errorData.mensaje || 'Error al agregar saldo');
       }
     } catch (error) {
-
-      // 13. Captura y maneja errores de red (por ejemplo, si el servidor está caído).
       console.error('Error de red:', error);
       setError('Error de conexión al agregar saldo');
     }
   };
 
-  //Para Cerrar Sesion del Usuario
+  // Para Cerrar Sesion del Usuario
   const handleLogout = async () => {
     try {
       const sessionId = localStorage.getItem('sessionId');
       const response = await fetch('http://localhost:3000/api/logout', {
         method: 'GET',
         headers: {
-          'x-session-id': sessionId // Envía el sessionId en un encabezado
+          'x-session-id': sessionId
         },
       });
 
@@ -253,10 +242,8 @@ const ProfilePage = () => {
     <div className={styles.profileContainer}>
       <div className={styles.profileCard}>
         <h2>Mi Perfil</h2>
-
         {error && <div className={styles.errorMessage}>{error}</div>}
         {success && <div className={styles.successMessage}>{success}</div>}
-
         <div className={styles.profileHeader}>
           <div className={styles.imageContainer}>
             <img
@@ -279,7 +266,6 @@ const ProfilePage = () => {
               </div>
             )}
           </div>
-
           <div className={styles.balanceSection}>
             <h3>Saldo actual</h3>
             <p className={styles.balance}>Q{formData.balance?.toFixed(2) || '0.00'}</p>
@@ -291,7 +277,6 @@ const ProfilePage = () => {
             </button>
           </div>
         </div>
-
         <div className={styles.formGroup}>
           <label htmlFor="username">Nombre de usuario</label>
           <input
@@ -304,7 +289,6 @@ const ProfilePage = () => {
             className={editMode ? styles.editable : styles.disabled}
           />
         </div>
-
         <div className={styles.formGroup}>
           <label htmlFor="fullName">Nombre completo</label>
           <input
@@ -317,7 +301,6 @@ const ProfilePage = () => {
             className={editMode ? styles.editable : styles.disabled}
           />
         </div>
-
         {editMode && (
           <>
             <div className={styles.formGroup}>
@@ -332,7 +315,6 @@ const ProfilePage = () => {
                 className={styles.editable}
               />
             </div>
-
             <div className={styles.formGroup}>
               <label htmlFor="currentPassword">Contraseña actual *</label>
               <input
@@ -347,7 +329,6 @@ const ProfilePage = () => {
             </div>
           </>
         )}
-
         <div className={styles.buttonGroup}>
           {editMode ? (
             <>
@@ -368,7 +349,7 @@ const ProfilePage = () => {
             <>
               <button
                 onClick={() => setEditMode(true)}
-                className={styles.editBtn} j
+                className={styles.editBtn} 
               >
                 Editar perfil
               </button>

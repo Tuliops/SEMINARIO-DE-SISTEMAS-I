@@ -7,6 +7,14 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+
+// Configura body-parser para aceptar cargas útiles más grandes
+// Aumenta el límite del JSON a 50mb (ajusta el tamaño según tu necesidad)
+app.use(express.json({ limit: '50mb' }));
+
+// Aumenta el límite de las URL-encoded a 50mb
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
 const PORT = process.env.PORT || 3000;
 
 const authRoutes = require('./routes/auth.routes');

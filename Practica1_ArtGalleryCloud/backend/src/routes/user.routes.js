@@ -35,7 +35,7 @@ router.get('/profile', authController.getProfile)
 
 router.get('/purchasedArt', authController.getPurchasedArt)
 // Ruta para editar el perfil del usuario (PUT)
-router.put('/edit-profile', authController.editProfile);
+router.put('/edit-profile', upload.single('profilePic'), authController.editProfile);
 
 
 // Ruta para cerrar sesion del usuario  

@@ -1,340 +1,288 @@
+// artControllers.js
+const AWS = require('aws-sdk');
+const crypto = require('crypto');
+const md5 = require('md5'); // Se usa para encriptar la contraseña
 
+// Importa el pool de conexiones desde tu archivo db.js
+const pool = require('./db');
 
-// Simulación de base de datos en memoria
+// El objeto 'database' solo se mantiene para la simulación de sesiones
 const database = {
-  users: [
-    {
-      id: 1,
-      username: "testuser",
-      fullName: "Usuario de Prueba",
-      password: "testpassword", // En producción, esto debería estar encriptado
-      profilePic: "http://localhost:3000/images/basic_porfile.png",
-      balance: 500.00,
-      acquiredArt: []
-    }
-  ],
-  sessions: {}, // Almacenará los tokens de sesión
-  artworks: [
-    {
-      id: 1,
-      isAvailable: true,
-      title: "Noche estrellada",
-      artist: "Vincent van Gogh",
-      image: "https://tse1.mm.bing.net/th/id/OIP.m9JXrZObIzEXpuwUKx4rqQHaFj?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
-      description: "Una de las obras más famosas de Van Gogh, pintada en 1889.",
-      price: 100
-
-    },
-    {
-      id: 2,
-      isAvailable: true,
-      title: "Dark Side Moon",
-      artist: "Pink Floid",
-      image: "https://tse4.mm.bing.net/th/id/OIP.CdQig4btMwmR0Kq5zSMhaQHaFB?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
-      description: " is the eighth studio LP by Pink Floyd. It was recorded at Abbey Road Studios in London, England, and released in 1973",
-      price: 200
-    },
-    {
-      id: 4,
-      isAvailable: true,
-      title: "El grito",
-      artist: "Edvard Munch",
-      image: "https://angeladearte.wordpress.com/wp-content/uploads/2016/08/120503_exp_scream-ex-crop-rectangle3-large.jpg",
-      description: "Una obra expresionista que simboliza la ansiedad humana.",
-      price: 400
-    },
-    {
-      id: 5,
-      isAvailable: true,
-      title: "La creación de Adán",
-      artist: " Miguel Ángel",
-      image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Michelangelo_-_Creation_of_Adam_%28cropped%29.jpg/1200px-Michelangelo_-_Creation_of_Adam_%28cropped%29.jpg",
-      description: "La creación de Adán es un fresco en la bóveda de la Capilla Sixtina, pintado por Miguel Ángel alrededor del año 1511",
-      price: 1500
-    }
-  ]
+  sessions: {},
 };
 
-// --- IMPORTACIONES ADICIONALES ---
-// Importa el módulo 'aws-sdk' y 'crypto' para subir a S3.
-const AWS = require('aws-sdk');
-const { log } = require('console');
-const crypto = require('crypto');
-
-// Crea una instancia de S3 (ya configurada en index.js)
+// Asumiendo que AWS S3 ya está configurado
 const s3 = new AWS.S3();
 
-// Función auxiliar para generar IDs únicos
-let nextId = 6;
-const generateId = () => nextId++;
-
-// Función auxiliar para encontrar usuario por username
-const findUserByUsername = (username) => {
-  return database.users.find(user => user.username === username);
-};
-
-// Función auxiliar para encontrar usuario por ID
-const findUserById = (id) => {
-  return database.users.find(user => user.id === id);
-};
-
-// Función auxiliar para encontrar obra de arte por ID
-const findArtworkById = (id) => {
-  return database.artworks.find(art => art.id === id);
-};
-
-
 exports.testUser = (req, res) => {
-  return res.status(201).json({
-    mensaje: 'TEST UP.'
-  });
-}
+  return res.status(201).json({ mensaje: 'TEST UP.' });
+};
 
-// Logica para el Login de los Usuarios
-exports.login = (req, res) => {
+// Lógica para el Login de los Usuarios
+exports.login = async (req, res) => {
   const { username, password } = req.body;
-
   if (!username || !password) {
     return res.status(400).json({ mensaje: 'Nombre de usuario y contraseña son requeridos.' });
   }
 
-  const user = findUserByUsername(username);
 
-  if (user && user.password === password) {
-    const sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    database.sessions[sessionId] = {
-      userId: user.id,
-      createdAt: new Date()
-    };
 
-    console.log("Inicio de sesión exitoso para:", username);
-    console.log("Estado actual de las sesiones:", database.sessions);
+  //const [allUsers] = await pool.execute("SELECT * FROM Usuarios");
+  //console.log("Todos los usuarios en la base de datos:", allUsers);
 
-    return res.status(200).json({
-      mensaje: 'Inicio de sesión exitoso.',
-      sessionId: sessionId,
-      user: {
-        id: user.id,
-        username: user.username,
-        fullName: user.fullName,
-        profilePic: user.profilePic,
-        balance: user.balance
-      }
-    });
-  } else {
-    return res.status(401).json({ mensaje: 'Credenciales inválidas.' });
+  try {
+    // Imprime los valores que se van a usar en la consulta
+    console.log("Buscando usuario:", username);
+    console.log("Contraseña encriptada:", md5(password));
+
+    const [rows] = await pool.execute(
+      `SELECT id_usuario, username, nombre_completo, foto_perfil_url, saldo
+   FROM Usuarios WHERE username = ? AND contrasena = ?`,
+      [username, md5(password)]
+    );
+
+
+    console.log(rows);
+
+    const user = rows[0];
+    if (user) {
+      const sessionId = crypto.randomBytes(16).toString('hex');
+      database.sessions[sessionId] = { userId: user.id_usuario, createdAt: new Date() };
+
+      return res.status(200).json({
+        mensaje: 'Inicio de sesión exitoso.',
+        sessionId,
+        user: {
+          id: user.id_usuario,
+          username: user.username,
+          fullName: user.nombre_completo,
+          profilePic: user.foto_perfil_url,
+          balance: user.saldo,
+        },
+      });
+    } else {
+      return res.status(401).json({ mensaje: 'Credenciales inválidas.' });
+    }
+  } catch (error) {
+    console.error("Error en login:", error);
+    return res.status(500).json({ mensaje: 'Error interno del servidor.' });
   }
 };
 
-
-//registro de usuarios 
+// Lógica para el registro de usuarios
 exports.register = async (req, res) => {
-
   const { username, fullName, password, confirmPassword } = req.body;
   const profilePicFile = req.file;
-  // Agregamos esta línea para depurar y ver qué datos de texto llegan
-  console.log("Datos de texto recibidos:", req.body);
-  console.log("Datos de archivo recibidos:", req.file);
-  if (!username || !fullName || !password || !confirmPassword) {
-    console.log('Todos los campos de texto son obligatorios.');
 
+  if (!username || !fullName || !password || !confirmPassword) {
     return res.status(400).json({ error: 'Todos los campos de texto son obligatorios.' });
   }
   if (password !== confirmPassword) {
     return res.status(400).json({ error: 'La contraseña y la confirmación no coinciden.' });
   }
 
-  if (findUserByUsername(username)) {
-    return res.status(409).json({ mensaje: 'El nombre de usuario ya existe. Por favor, elige otro.' });
-  }
+  try {
+    const [existingUsers] = await pool.execute('SELECT username FROM Usuarios WHERE username = ?', [username]);
+    if (existingUsers.length > 0) {
+      return res.status(409).json({ mensaje: 'El nombre de usuario ya existe. Por favor, elige otro.' });
+    }
 
-
-  let profilePicUrl = "https://via.placeholder.com/150";
-
-  if (profilePicFile) {
-    const uniqueFileName = `${crypto.randomBytes(16).toString('hex')}-${profilePicFile.originalname}`;
-    console.log(process.env.S3_BUCKET_NAME)
-    const s3UploadParams = {
-      Bucket: process.env.S3_BUCKET_NAME,
-      Key: `Fotos_Perfil/${uniqueFileName}`,
-      Body: profilePicFile.buffer,
-      ContentType: profilePicFile.mimetype,
-    };
-
-    try {
+    let profilePicUrl = "https://via.placeholder.com/150";
+    if (profilePicFile) {
+      const uniqueFileName = `${crypto.randomBytes(16).toString('hex')}-${profilePicFile.originalname}`;
+      const s3UploadParams = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: `Fotos_Perfil/${uniqueFileName}`,
+        Body: profilePicFile.buffer,
+        ContentType: profilePicFile.mimetype,
+      };
       const s3Result = await s3.upload(s3UploadParams).promise();
       profilePicUrl = s3Result.Location;
-      console.log("Imagen subida a S3:", profilePicUrl);
-    } catch (s3Error) {
-      console.error("Error al subir la imagen a S3:", s3Error);
-      return res.status(500).json({ mensaje: 'Error al subir la foto de perfil.' });
     }
+
+    const [result] = await pool.execute(
+      `INSERT INTO Usuarios (username, nombre_completo, contrasena, foto_perfil_url, saldo)
+       VALUES (?, ?, ?, ?, ?)`,
+      [username, fullName, md5(password), profilePicUrl, 100.00]
+    );
+
+    return res.status(201).json({
+      mensaje: 'Usuario registrado exitosamente.',
+      user: {
+        id: result.insertId,
+        username,
+        fullName,
+        profilePic: profilePicUrl,
+      },
+    });
+  } catch (error) {
+    console.error("Error en el registro:", error);
+    return res.status(500).json({ mensaje: 'Error al registrar el usuario.' });
   }
-
-  const newUser = {
-    id: generateId(),
-    username: username,
-    fullName: fullName,
-    password: password,
-    profilePic: profilePicUrl,
-    balance: 100.00,
-    acquiredArt: []
-  };
-
-  database.users.push(newUser);
-  console.log("Usuario registrado exitosamente:", username);
-  return res.status(201).json({
-    mensaje: 'Usuario registrado exitosamente.',
-    user: {
-      id: newUser.id,
-      username: newUser.username,
-      fullName: newUser.fullName,
-      profilePic: newUser.profilePic
-    }
-  });
 };
 
-
 // Controlador para obtener la galería completa
-exports.getGallery = (req, res) => {
-  res.status(200).json(database.artworks);
+exports.getGallery = async (req, res) => {
+  try {
+    const [artworks] = await pool.execute(`
+      SELECT 
+        id_obra AS id, 
+        titulo AS title, 
+        autor AS artist, 
+        anio_publicacion AS year,
+        precio AS price, 
+        disponibilidad AS isAvailable,
+        url_imagen AS image
+      FROM Obras
+    `);
+    res.status(200).json(artworks);
+  } catch (error) {
+    console.error("Error al obtener la galería:", error);
+    res.status(500).json({ mensaje: 'Error al obtener la galería.' });
+  }
 };
 
 // Controlador para realizar una compra (acquire)
-exports.acquire = (req, res) => {
+exports.acquire = async (req, res) => {
   const { artworkId } = req.body;
   const sessionId = req.headers.authorization?.replace('Bearer ', '');
-  console.log("Sesión recibida en encabezado:", sessionId);
-  console.log("Estado de las sesiones en la base de datos:", database.sessions[sessionId]);
 
   if (!sessionId || !database.sessions[sessionId]) {
     return res.status(401).json({ mensaje: 'No autorizado. Por favor, inicie sesión.' });
   }
-
-
   if (!artworkId) {
     return res.status(400).json({ mensaje: "El ID de la obra de arte es requerido." });
   }
 
   const userId = database.sessions[sessionId].userId;
-  const user = findUserById(userId);
-  const artwork = findArtworkById(parseInt(artworkId));
+  const connection = await pool.getConnection();
 
-  if (!artwork) {
-    return res.status(404).json({ mensaje: "Obra de arte no encontrada." });
+  try {
+    await connection.beginTransaction();
+
+    const [[user]] = await connection.execute('SELECT saldo FROM Usuarios WHERE id_usuario = ? FOR UPDATE', [userId]);
+    const [[artwork]] = await connection.execute('SELECT precio, disponibilidad FROM Obras WHERE id_obra = ? FOR UPDATE', [artworkId]);
+
+    if (!artwork) {
+      await connection.rollback();
+      return res.status(404).json({ mensaje: "Obra de arte no encontrada." });
+    }
+    if (artwork.disponibilidad !== 1) {
+      await connection.rollback();
+      return res.status(409).json({ mensaje: "La obra de arte no está disponible para la venta." });
+    }
+    if (user.saldo < artwork.precio) {
+      await connection.rollback();
+      return res.status(402).json({ mensaje: "Saldo insuficiente para realizar la compra." });
+    }
+
+    await connection.execute('UPDATE Usuarios SET saldo = saldo - ? WHERE id_usuario = ?', [artwork.precio, userId]);
+    await connection.execute('UPDATE Obras SET disponibilidad = 0 WHERE id_obra = ?', [artworkId]);
+    await connection.execute('INSERT INTO Transacciones (id_usuario, id_obra, monto) VALUES (?, ?, ?)', [userId, artworkId, artwork.precio]);
+
+    await connection.commit();
+
+    const newBalance = user.saldo - artwork.precio;
+    const [acquiredArt] = await pool.execute('SELECT id_obra FROM Transacciones WHERE id_usuario = ?', [userId]);
+
+    res.status(200).json({
+      mensaje: "Transacción exitosa. La obra ha sido adquirida.",
+      newBalance,
+      acquiredArt: acquiredArt.map((row) => row.id_obra),
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error("Error en la compra:", error);
+    res.status(500).json({ mensaje: 'Error interno del servidor.' });
+  } finally {
+    connection.release();
   }
-
-  if (!artwork.isAvailable) {
-    return res.status(409).json({ mensaje: "La obra de arte no está disponible para la venta." });
-  }
-
-  if (user.balance < artwork.price) {
-    return res.status(402).json({ mensaje: "Saldo insuficiente para realizar la compra." });
-  }
-
-  // Realizar la transacción
-  user.balance -= artwork.price;
-  artwork.isAvailable = false;
-  user.acquiredArt.push(artwork.id);
-
-  res.status(200).json({
-    mensaje: "Transacción exitosa. La obra ha sido adquirida.",
-    newBalance: user.balance,
-    acquiredArt: user.acquiredArt
-  });
 };
 
-// Logica para mostrar TODA LA INFORMACION del perfil del usuario
-exports.getProfile = (req, res) => {
-  console.log("Iniciando solicitud GET PERFIL...");
-  const sessionId = req.headers['x-session-id']; // O el nombre del encabezado que uses
+// Lógica para mostrar toda la información del perfil del usuario
+exports.getProfile = async (req, res) => {
 
-  console.log("Sesión recibida en encabezado:", sessionId);
-  console.log("Estado de las sesiones en la base de datos:", database.sessions[sessionId]);
 
-  // Verificamos si la sesión existe en nuestra "base de datos"
+  const sessionId = req.headers['x-session-id'] || req.headers.authorization?.replace('Bearer ', '');
+
   if (!sessionId || !database.sessions[sessionId]) {
-    console.log("Sesión no válida o no encontrada.");
     return res.status(401).json({ mensaje: 'No autorizado. Por favor, inicie sesión.' });
   }
 
+
   const userId = database.sessions[sessionId].userId;
-  const user = findUserById(userId);
 
-  if (!user) {
-    console.log("Usuario no encontrado para el ID de sesión:", userId);
-    return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+  try {
+    const [[user]] = await pool.execute(`
+      SELECT username, nombre_completo, foto_perfil_url, saldo
+      FROM Usuarios WHERE id_usuario = ?`, [userId]);
+
+    if (!user) {
+      return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+    }
+
+
+    const [purchasedArt] = await pool.execute(`
+       SELECT o.id_obra AS id, o.titulo, o.autor AS artist, o.anio_publicacion AS year,
+       o.precio AS price, o.disponibilidad AS isAvailable, o.url_imagen AS image
+       FROM Transacciones t JOIN Obras o ON t.id_obra = o.id_obra
+       WHERE t.id_usuario = ?`, [userId]);
+
+    res.status(200).json({
+      username: user.username,
+      fullName: user.nombre_completo,
+      profilePic: user.foto_perfil_url,
+      balance: user.saldo,
+      purchasedArt,
+    });
+  } catch (error) {
+    console.error("Error al obtener el perfil:", error);
+    res.status(500).json({ mensaje: 'Error al obtener el perfil.' });
   }
-  console.log("Perfil obtenido para el usuario:", user.username);
-
-  // Obtener información detallada de las obras adquiridas
-  const purchasedArtDetails = user.acquiredArt.map(artId =>
-    findArtworkById(artId)
-  ).filter(art => art !== undefined);
-
-  res.status(200).json({
-    username: user.username,
-    fullName: user.fullName,
-    profilePic: user.profilePic,
-    balance: user.balance,
-    purchasedArt: purchasedArtDetails
-  });
 };
 
 // Lógica para aumentar el saldo del usuario
-exports.addBalance = (req, res) => {
-
-  // 1. Desestructura el cuerpo de la solicitud para obtener el monto y la contraseña.
-
-  const { amount, password } = req.body; // 👈 Ahora también se espera la contraseña
-  // 2. Extrae el ID de la sesión del encabezado de autorización.
-
+exports.addBalance = async (req, res) => {
+  const { amount, password } = req.body;
   const sessionId = req.headers.authorization?.replace('Bearer ', '');
 
-  // 3. Verifica si existe un ID de sesión válido.
-  // Si no hay sesión, responde con un error de "No autorizado".
   if (!sessionId || !database.sessions[sessionId]) {
     return res.status(401).json({ mensaje: 'No autorizado. Por favor, inicie sesión.' });
   }
-  // 4. Valida el monto. Debe ser un número positivo.
-
   if (!amount || typeof amount !== 'number' || amount <= 0) {
     return res.status(400).json({ mensaje: "Monto inválido. Debe ser un número positivo." });
   }
-  // 5. Valida que se haya enviado la contraseña.
-
-  if (!password) { // 👈 Validación de que se envió la contraseña
+  if (!password) {
     return res.status(400).json({ mensaje: "Debe ingresar su contraseña." });
   }
-  // 6. Busca al usuario en la "base de datos" usando el ID de la sesión.
 
   const userId = database.sessions[sessionId].userId;
-  const user = findUserById(userId);
 
-  // 7. Verifica si el usuario existe. Si no, responde con un error de "no encontrado".
+  try {
+    const [[user]] = await pool.execute(`
+      SELECT contrasena, saldo FROM Usuarios WHERE id_usuario = ?`, [userId]);
 
-  if (!user) {
-    return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+    if (!user) {
+      return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+    }
+    if (user.contrasena !== md5(password)) {
+      return res.status(401).json({ mensaje: 'Contraseña incorrecta.' });
+    }
+
+    await pool.execute('UPDATE Usuarios SET saldo = saldo + ? WHERE id_usuario = ?', [amount, userId]);
+    const newBalance = user.saldo + amount;
+
+    res.status(200).json({
+      mensaje: `Saldo aumentado exitosamente.`,
+      newBalance,
+    });
+  } catch (error) {
+    console.error("Error al aumentar el saldo:", error);
+    res.status(500).json({ mensaje: 'Error interno del servidor.' });
   }
-
-  // 8. Compara la contraseña enviada con la contraseña del usuario.
-  // Si no coinciden, responde con un error de "contraseña incorrecta".
-
-  if (user.password !== password) {
-    return res.status(401).json({ mensaje: 'Contraseña incorrecta.' });
-  }
-
-  // 9. Si todas las validaciones pasan, aumenta el saldo del usuario.
-  user.balance += amount;
-  // 10. Responde con un mensaje de éxito y el nuevo saldo.
-
-  res.status(200).json({
-    mensaje: `Saldo aumentado exitosamente.`,
-    newBalance: user.balance
-  });
 };
 
-// Logica para cerrar sesión de la cuenta del usuario
+// Lógica para cerrar sesión de la cuenta del usuario
 exports.logout = (req, res) => {
   const sessionId = req.body.sessionId || req.headers.authorization?.replace('Bearer ', '');
 
@@ -346,94 +294,140 @@ exports.logout = (req, res) => {
   }
 };
 
-// Controlador para editar el perfil del usuario
-exports.editProfile = (req, res) => {
-  const { username, fullName, profilePic, currentPassword, newPassword } = req.body
+// Controlador para editar el perfil del usuario (con subida a S3)
+exports.editProfile = async (req, res) => {
+  const { username, fullName, currentPassword, newPassword } = req.body;
+  const profilePicFile = req.file; // Obtiene el archivo de la solicitud
   const sessionId = req.headers.authorization?.replace('Bearer ', '');
-
+  console.log(profilePicFile)
   if (!sessionId || !database.sessions[sessionId]) {
     return res.status(401).json({ mensaje: 'No autorizado. Por favor, inicie sesión.' });
   }
 
   const userId = database.sessions[sessionId].userId;
-  const user = findUserById(userId);
 
-  if (!user) {
-    return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
-  }
+  try {
+    const [[user]] = await pool.execute(`
+      SELECT username, contrasena FROM Usuarios WHERE id_usuario = ?`, [userId]);
 
-  // 1. Validar que se envíe la contraseña actual
-  if (!currentPassword) {
-    return res.status(400).json({ mensaje: 'Debe ingresar su contraseña actual para confirmar los cambios.' });
-  }
-
-  // 2. Verificar la contraseña actual
-  if (currentPassword !== user.password) {
-    return res.status(401).json({ mensaje: 'Contraseña incorrecta. No se pueden actualizar los datos.' });
-  }
-
-  // 3. Verificar que el nuevo nombre de usuario no esté en uso (si se está cambiando)
-  if (username && username !== user.username) {
-    if (findUserByUsername(username)) {
-      return res.status(409).json({ mensaje: 'El nombre de usuario ya está en uso. Por favor, elige otro.' });
+    if (!user) {
+      return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
     }
-  }
-
-  // 4. Actualizar la información del usuario
-  if (username) user.username = username;
-  if (fullName) user.fullName = fullName;
-  if (profilePic) user.profilePic = profilePic;
-  if (newPassword) user.password = newPassword;
-
-  // 5. Enviar respuesta de éxito
-  res.status(200).json({
-    mensaje: 'Perfil actualizado exitosamente.',
-    user: {
-      id: user.id,
-      username: user.username,
-      fullName: user.fullName,
-      profilePic: user.profilePic,
-      balance: user.balance
+    if (!currentPassword) {
+      return res.status(400).json({ mensaje: 'Debe ingresar su contraseña actual para confirmar los cambios.' });
     }
-  });
+    if (md5(currentPassword) !== user.contrasena) {
+      return res.status(401).json({ mensaje: 'Contraseña incorrecta. No se pueden actualizar los datos.' });
+    }
+    if (username && username !== user.username) {
+      const [existingUsers] = await pool.execute('SELECT username FROM Usuarios WHERE username = ?', [username]);
+      if (existingUsers.length > 0) {
+        return res.status(409).json({ mensaje: 'El nombre de usuario ya está en uso. Por favor, elige otro.' });
+      }
+    }
+
+    // Lógica para subir la nueva imagen de perfil si se proporciona
+    let newProfilePicUrl;
+    if (profilePicFile) {
+      const uniqueFileName = `${crypto.randomBytes(16).toString('hex')}-${profilePicFile.originalname}`;
+      const s3UploadParams = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: `Fotos_Perfil/${uniqueFileName}`,
+        Body: profilePicFile.buffer,
+        ContentType: profilePicFile.mimetype,
+      };
+
+      const s3Result = await s3.upload(s3UploadParams).promise();
+      newProfilePicUrl = s3Result.Location;
+    }
+    console.log("cambio de imagen de perfil" + newProfilePicUrl);
+    
+
+    
+    
+    // Construir la consulta de actualización dinámicamente
+    let updateQuery = 'UPDATE Usuarios SET';
+    const params = [];
+    if (username) {
+      updateQuery += ' username = ?,';
+      params.push(username);
+    }
+    if (fullName) {
+      updateQuery += ' nombre_completo = ?,';
+      params.push(fullName);
+    }
+    // Añadir la nueva URL si se subió un archivo
+    if (newProfilePicUrl) {
+      updateQuery += ' foto_perfil_url = ?,';
+      params.push(newProfilePicUrl);
+    }
+    if (newPassword) {
+      updateQuery += ' contrasena = ?,';
+      params.push(md5(newPassword));
+    }
+
+    if (params.length === 0) {
+      return res.status(200).json({ mensaje: 'No se realizaron cambios.' });
+    }
+
+    updateQuery = updateQuery.slice(0, -1) + ' WHERE id_usuario = ?';
+    params.push(userId);
+
+    await pool.execute(updateQuery, params);
+
+    const [[updatedUser]] = await pool.execute(`
+      SELECT id_usuario, username, nombre_completo, foto_perfil_url, saldo
+      FROM Usuarios WHERE id_usuario = ?`, [userId]);
+
+    res.status(200).json({
+      mensaje: 'Perfil actualizado exitosamente.',
+      user: {
+        id: updatedUser.id_usuario,
+        username: updatedUser.username,
+        fullName: updatedUser.nombre_completo,
+        profilePic: updatedUser.foto_perfil_url,
+        balance: updatedUser.saldo,
+      },
+    });
+  } catch (error) {
+    console.error("Error al editar el perfil:", error);
+    res.status(500).json({ mensaje: 'Error interno del servidor.' });
+  }
 };
 
 // Controlador para obtener las obras adquiridas por el usuario
-exports.getPurchasedArt = (req, res) => {
-  console.log("OBRAS ADQUIRIDAS ");
-  
-  const sessionId = req.headers['x-session-id']; 
+exports.getPurchasedArt = async (req, res) => {
+  console.log("obras adquiridas");
+
+  const sessionId = req.headers['x-session-id'] || req.headers.authorization?.replace('Bearer ', '');
 
   if (!sessionId || !database.sessions[sessionId]) {
     return res.status(401).json({ mensaje: 'No autorizado. Por favor, inicie sesión.' });
   }
 
   const userId = database.sessions[sessionId].userId;
-  const user = findUserById(userId);
 
-  if (!user) {
-    return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+  try {
+    const [purchasedArtDetails] = await pool.execute(`
+      SELECT 
+        o.id_obra AS id, 
+        o.titulo, 
+        o.autor AS artist, 
+        o.anio_publicacion AS year,
+        o.precio AS price, 
+        o.disponibilidad AS isAvailable, 
+        o.url_imagen AS image
+      FROM Transacciones t 
+      JOIN Obras o ON t.id_obra = o.id_obra
+      WHERE t.id_usuario = ?`, [userId]);
+
+    if (!purchasedArtDetails) {
+      return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+    }
+
+    res.status(200).json(purchasedArtDetails);
+  } catch (error) {
+    console.error("Error al obtener las obras adquiridas:", error);
+    res.status(500).json({ mensaje: 'Error al obtener las obras adquiridas.' });
   }
-
-  // Obtener información detallada de las obras adquiridas
-  const purchasedArtDetails = user.acquiredArt.map(artId =>
-    findArtworkById(artId)
-  ).filter(art => art !== undefined);
-
-  res.status(200).json(purchasedArtDetails);
-};
-
-// Función para obtener datos de la base de datos (solo para desarrollo/depuración)
-exports.getDatabase = (req, res) => {
-  // No incluir contraseñas en la respuesta
-  const usersWithoutPasswords = database.users.map(user => {
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
-  });
-
-  res.status(200).json({
-    users: usersWithoutPasswords,
-    sessions: database.sessions,
-    artworks: database.artworks
-  });
 };
